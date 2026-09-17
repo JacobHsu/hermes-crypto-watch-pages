@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BTC/ETH 每日預測命中率 · Prediction Heatmap</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --border: #21262d;
+    --muted: #8b949e;
+    --text: #e6edf3;
+    --text-dim: #8b949e;
+    --green-strong: #1a7f37;
+    --green-bg: #0d3320;
+    --green-text: #3fb950;
+    --red-strong: #cf222e;
+    --red-bg: #3d1114;
+    --red-text: #f85149;
+    --amber-bg: #2d1f0a;
+    --amber-text: #d29922;
+    --void-bg: #1c1f24;
+    --void-text: #6e7681;
+    --calib-bg: #0e1f38;
+    --calib-text: #388bfd;
+    --radius: 10px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    min-height: 100vh;
+    padding: 24px 16px 48px;
+  }
+  /* ─── Header ─── */
+  .page-header {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+  .page-header h1 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 6px;
+  }
+  .page-header p {
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+  .coin-icons { display: flex; gap: 6px; justify-content: center; align-items: center; margin-bottom: 8px; }
+  .coin-icons img { width: 28px; height: 28px; border-radius: 50%; }
+  /* ─── Stats bar ─── */
+  .stats-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: center;
+    margin-bottom: 36px;
+  }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 22px;
+    text-align: center;
+    min-width: 110px;
+  }
+  .stat-card .label { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
+  .stat-card .value { font-size: 1.5rem; font-weight: 700; }
+  .stat-card.green .value { color: var(--green-text); }
+  .stat-card.red .value { color: var(--red-text); }
+  .stat-card.amber .value { color: var(--amber-text); }
+  /* ─── Legend ─── */
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: center;
+    margin-bottom: 36px;
+    font-size: 0.79rem;
+    color: var(--muted);
+  }
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .legend-dot {
+    width: 14px; height: 14px; border-radius: 4px; flex-shrink: 0;
+  }
+  .ld-hit { background: var(--green-bg); border: 1px solid var(--green-strong); }
+  .ld-miss { background: var(--red-bg); border: 1px solid var(--red-strong); }
+  .ld-pending { background: var(--amber-bg); border: 1px solid #6b4300; }
+  .ld-void { background: var(--void-bg); border: 1px solid var(--border); }
+  .ld-calib { background: var(--calib-bg); border: 1px solid #1f3d6b; }
+  /* ─── Asset section ─── */
+  .asset-section {
+    max-width: 780px;
+    margin: 0 auto 48px;
+  }
+  .asset-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .asset-header img { width: 32px; height: 32px; border-radius: 50%; }
+  .asset-header h2 { font-size: 1.1rem; font-weight: 600; }
+  .asset-header .hit-rate {
+    margin-left: auto;
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+  .asset-header .hit-rate strong { font-size: 1.1rem; margin-left: 4px; }
+  .asset-header .hit-rate strong.good { color: var(--green-text); }
+  .asset-header .hit-rate strong.bad { color: var(--red-text); }
+  /* ─── Month block ─── */
+  .month-block { margin-bottom: 24px; }
+  .month-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 8px;
+    padding-left: 2px;
+  }
+  .weekday-row {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 5px;
+    margin-bottom: 5px;
+  }
+  .weekday-row span {
+    font-size: 0.7rem;
+    text-align: center;
+    color: var(--muted);
+    padding: 2px 0;
+  }
+  .calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 5px;
+  }
+  /* ─── Day cell ─── */
+  .day-cell {
+    border-radius: 8px;
+    padding: 8px 7px 7px;
+    min-height: 74px;
+    position: relative;
+    border: 1px solid transparent;
+    cursor: default;
+    transition: transform 0.1s, box-shadow 0.1s;
+  }
+  .day-cell:hover { transform: scale(1.03); box-shadow: 0 4px 16px #0008; z-index: 1; }
+  .day-cell.empty { background: transparent; border-color: transparent; pointer-events: none; }
+  .day-cell.hit { background: var(--green-bg); border-color: var(--green-strong); }
+  .day-cell.miss { background: var(--red-bg); border-color: var(--red-strong); }
+  .day-cell.pending { background: var(--amber-bg); border-color: #6b4300; }
+  .day-cell.void { background: var(--void-bg); border-color: var(--border); opacity: 0.7; }
+  .day-cell.calibration { background: var(--calib-bg); border-color: #1f3d6b; }
+  .day-num {
+    font-size: 0.68rem;
+    font-weight: 600;
+    color: var(--muted);
+    position: absolute;
+    top: 6px;
+    right: 7px;
+    line-height: 1;
+  }
+  .day-cell.hit .day-num { color: var(--green-text); }
+  .day-cell.miss .day-num { color: var(--red-text); }
+  .day-cell.pending .day-num { color: var(--amber-text); }
+  /* ─── Prediction row inside cell ─── */
+  .pred-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 18px;
+    font-size: 0.75rem;
+  }
+  .arrow-pick { font-size: 1.05rem; line-height: 1; }
+  .arrow-pick.up { color: #3fb950; }
+  .arrow-pick.down { color: #f85149; }
+  .sep { color: var(--muted); font-size: 0.65rem; }
+  .arrow-actual { font-size: 1.05rem; line-height: 1; }
+  .arrow-actual.up { color: #3fb950; }
+  .arrow-actual.down { color: #f85149; }
+  .arrow-actual.pending { color: #d29922; }
+  .delta {
+    margin-left: auto;
+    font-size: 0.67rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .delta.pos { color: var(--green-text); }
+  .delta.neg { color: var(--red-text); }
+  .delta.neutral { color: var(--muted); }
+  /* ─── Status badge ─── */
+  .status-badge {
+    margin-top: 5px;
+    font-size: 0.59rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 2px 5px;
+    border-radius: 4px;
+    display: inline-block;
+  }
+  .sb-hit { background: #1a7f3740; color: var(--green-text); }
+  .sb-miss { background: #cf222e40; color: var(--red-text); }
+  .sb-pending { background: #9e6a0340; color: var(--amber-text); }
+  .sb-void { background: #21262d80; color: var(--void-text); }
+  .sb-calib { background: #1f3d6b80; color: var(--calib-text); }
+  /* ─── Tooltip ─── */
+  .tooltip-wrap { position: relative; }
+  .tooltip {
+    display: none;
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1c2128;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    width: 230px;
+    font-size: 0.73rem;
+    line-height: 1.6;
+    z-index: 100;
+    color: var(--text);
+    box-shadow: 0 8px 24px #0009;
+    pointer-events: none;
+    white-space: normal;
+  }
+  .tooltip-wrap:hover .tooltip { display: block; }
+  .tooltip strong { color: var(--text); }
+  .tooltip .t-label { color: var(--muted); font-size: 0.68rem; }
+  /* ─── Mobile ─── */
+  @media (max-width: 600px) {
+    .day-cell { min-height: 60px; padding: 6px 5px 5px; }
+    .pred-row { margin-top: 15px; gap: 2px; }
+    .arrow-pick, .arrow-actual { font-size: 0.9rem; }
+    .delta { font-size: 0.6rem; }
+    .status-badge { display: none; }
+    .stat-card { padding: 12px 14px; min-width: 80px; }
+    .stat-card .value { font-size: 1.2rem; }
+  }
+</style>
+</head>
+<body>
+
+<div id="app"></div>
+
+<script>
+// ─── Prediction data ───────────────────────────────────────────────────────
+const DATA = [
+  // 2026-08-31 (calibration — not counted in hit rate)
+  {date:"2026-08-31",asset:"BTC",pick:"DOWN",actual:"DOWN",hit:true, status:"settled",eligible:false,strategy:"calibration_v0",  baseline:78815.16, settlement:78574.01},
+  {date:"2026-08-31",asset:"ETH",pick:"DOWN",actual:"DOWN",hit:true, status:"settled",eligible:false,strategy:"calibration_v0",  baseline:2479.60,  settlement:2466.10},
+  // 2026-09-01 (void – legacy_unverified)
+  {date:"2026-09-01",asset:"BTC",pick:"UP",  actual:"DOWN",hit:false,status:"void",   eligible:false,strategy:"legacy_unverified",baseline:78574.01, settlement:77916.01},
+  {date:"2026-09-01",asset:"ETH",pick:"UP",  actual:"DOWN",hit:false,status:"void",   eligible:false,strategy:"legacy_unverified",baseline:2466.10,  settlement:2448.64},
+  // 2026-09-02 (void – legacy_unverified, no settlement)
+  {date:"2026-09-02",asset:"BTC",pick:"DOWN",actual:null,  hit:null, status:"void",   eligible:false,strategy:"legacy_unverified"},
+  {date:"2026-09-02",asset:"ETH",pick:"DOWN",actual:null,  hit:null, status:"void",   eligible:false,strategy:"legacy_unverified"},
+  // 2026-09-03 (void – v1)
+  {date:"2026-09-03",asset:"BTC",pick:"DOWN",actual:"UP",  hit:false,status:"void",   eligible:false,strategy:"v1",              baseline:77292.00, settlement:81277.91},
+  {date:"2026-09-03",asset:"ETH",pick:"DOWN",actual:"UP",  hit:false,status:"void",   eligible:false,strategy:"v1",              baseline:2389.29,  settlement:2511.90},
+  // 2026-09-04 (void – v1)
+  {date:"2026-09-04",asset:"BTC",pick:"UP",  actual:"DOWN",hit:false,status:"void",   eligible:false,strategy:"v1",              baseline:81277.91, settlement:79390.31},
+  {date:"2026-09-04",asset:"ETH",pick:"UP",  actual:"DOWN",hit:false,status:"void",   eligible:false,strategy:"v1",              baseline:2511.90,  settlement:2451.02},
+  // 2026-09-05 (void – v1)
+  {date:"2026-09-05",asset:"BTC",pick:"DOWN",actual:"UP",  hit:false,status:"void",   eligible:false,strategy:"v1",              baseline:79390.31, settlement:79806.00},
+  {date:"2026-09-05",asset:"ETH",pick:"DOWN",actual:"UP",  hit:false,status:"void",   eligible:false,strategy:"v1",              baseline:2451.02,  settlement:2459.42},
+  // 2026-09-06 (v2 eligible)
+  {date:"2026-09-06",asset:"BTC",pick:"UP",  actual:"DOWN",hit:false,status:"settled",eligible:true, strategy:"v2_contract_aligned",baseline:79806.00, settlement:79714.27},
+  {date:"2026-09-06",asset:"ETH",pick:"UP",  actual:"UP",  hit:true, status:"settled",eligible:true, strategy:"v2_contract_aligned",baseline:2459.42,  settlement:2480.10},
+  // 2026-09-07 (v2 eligible)
+  {date:"2026-09-07",asset:"BTC",pick:"DOWN",actual:"DOWN",hit:true, status:"settled",eligible:true, strategy:"v2_contract_aligned",baseline:79714.27, settlement:78861.41},
+  {date:"2026-09-07",asset:"ETH",pick:"DOWN",actual:"DOWN",hit:true, status:"settled",eligible:true, strategy:"v2_contract_aligned",baseline:2480.10,  settlement:2472.72},
+  // 2026-09-08 (v2 eligible)
+  {date:"2026-09-08",asset:"BTC",pick:"DOWN",actual:"DOWN",hit:true, status:"settled",eligible:true, strategy:"v2_contract_aligned",baseline:78861.41, settlement:78820.01},
+  {date:"2026-09-08",asset:"ETH",pick:"DOWN",actual:"UP",  hit:false,status:"settled",eligible:true, strategy:"v2_contract_aligned",baseline:2472.72,  settlement:2496.86},
+  // 2026-09-09 (v2 eligible)
+  {date:"2026-09-09",asset:"BTC",pick:"UP",  actual:"DOWN",hit:false,status:"settled",eligible:true, strategy:"v2_contract_aligned",baseline:78820.01, settlement:78606.00},
+  {date:"2026-09-09",asset:"ETH",pick:"UP",  actual:"DOWN",hit:false,status:"settled",eligible:true, strategy:"v2_contract_aligned",baseline:2496.86,  settlement:2491.10},
+  // 2026-09-10 (v2 eligible)
+  {date:"2026-09-10",asset:"BTC",pick:"DOWN",actual:"DOWN",hit:true, status:"settled",eligible:true, strategy:"v2_contract_aligned",baseline:78606.00, settlement:77293.72},
+  {date:"2026-09-10",asset:"ETH",pick:"DOWN",actual:"DOWN",hit:true, status:"settled",eligible:true, strategy:"v2_contract_aligned",baseline:2491.10,  settlement:2443.63},
+  // 2026-09-11 (v2 eligible)
+  {date:"2026-09-11",asset:"BTC",pick:"DOWN",actual:"UP",  hit:false,status:"settled",eligible:true, strategy:"v2_contract_aligned",baseline:77293.72, settlement:77932.01},
+  {date:"2026-09-11",asset:"ETH",pick:"DOWN",actual:"UP",  hit:false,status:"settled",eligible:true, strategy:"v2_contract_aligned",baseline:2443.63,  settlement:2570.37},
+  // 2026-09-12 (v2 eligible)
+  {date:"2026-09-12",asset:"BTC",pick:"UP",  actual:"DOWN",hit:false,status:"settled",eligible:true, strategy:"v2_contract_aligned",baseline:77932.01, settlement:77380.38},
+  {date:"2026-09-12",asset:"ETH",pick:"UP",  actual:"DOWN",hit:false,status:"settled",eligible:true, strategy:"v2_contract_aligned",baseline:2570.37,  settlement:2535.23},
+  // 2026-09-13 (v2 eligible)
+  {date:"2026-09-13",asset:"BTC",pick:"UP",  actual:"DOWN",hit:false,status:"settled",eligible:true, strategy:"v2_contract_aligned",baseline:77380.38, settlement:77151.89},
+  {date:"2026-09-13",asset:"ETH",pick:"DOWN",actual:"DOWN",hit:true, status:"settled",eligible:true, strategy:"v2_contract_aligned",baseline:2535.23,  settlement:2491.92},
+  // 2026-09-14 (v2 eligible)
+  {date:"2026-09-14",asset:"BTC",pick:"UP",  actual:"UP",  hit:true, status:"settled",eligible:true, strategy:"v2_contract_aligned",baseline:77151.89, settlement:78558.01},
+  {date:"2026-09-14",asset:"ETH",pick:"UP",  actual:"UP",  hit:true, status:"settled",eligible:true, strategy:"v2_contract_aligned",baseline:2491.92,  settlement:2508.37},
+  // 2026-09-15 (v2 eligible)
+  {date:"2026-09-15",asset:"BTC",pick:"UP",  actual:"DOWN",hit:false,status:"settled",eligible:true, strategy:"v2_contract_aligned",baseline:78558.01, settlement:76457.61},
+  {date:"2026-09-15",asset:"ETH",pick:"DOWN",actual:"DOWN",hit:true, status:"settled",eligible:true, strategy:"v2_contract_aligned",baseline:2508.37,  settlement:2422.08},
+  // 2026-09-16 (v2 eligible)
+  {date:"2026-09-16",asset:"BTC",pick:"DOWN",actual:"DOWN",hit:true, status:"settled",eligible:true, strategy:"v2_contract_aligned",baseline:76457.61, settlement:75780.01},
+  {date:"2026-09-16",asset:"ETH",pick:"DOWN",actual:"DOWN",hit:true, status:"settled",eligible:true, strategy:"v2_contract_aligned",baseline:2422.08,  settlement:2392.15},
+  // 2026-09-17 (pending)
+  {date:"2026-09-17",asset:"BTC",pick:"DOWN",actual:null,  hit:null, status:"pending",eligible:true, strategy:"v2_contract_aligned"},
+  {date:"2026-09-17",asset:"ETH",pick:"DOWN",actual:null,  hit:null, status:"pending",eligible:true, strategy:"v2_contract_aligned"},
+];
+
+// ─── Helpers ───────────────────────────────────────────────────────────────
+const byAsset = asset => DATA.filter(d => d.asset === asset);
+const v2only  = rows => rows.filter(r => r.eligible);
+
+function hitRate(rows) {
+  const settled = rows.filter(r => r.status === 'settled' && r.eligible && r.hit !== null);
+  if (!settled.length) return null;
+  return settled.filter(r => r.hit).length / settled.length;
+}
+
+function pctDelta(r) {
+  if (r.baseline == null || r.settlement == null) return null;
+  return ((r.settlement - r.baseline) / r.baseline * 100).toFixed(2);
+}
+
+function cellClass(r) {
+  if (!r) return 'empty';
+  if (r.strategy === 'calibration_v0') return 'calibration';
+  if (r.status === 'void') return 'void';
+  if (r.status === 'pending') return 'pending';
+  if (r.hit === true)  return 'hit';
+  if (r.hit === false) return 'miss';
+  return 'void';
+}
+
+function arrowUp(cls)   { return `<span class="arrow-${cls} up"   title="上漲">↑</span>`; }
+function arrowDown(cls) { return `<span class="arrow-${cls} down" title="下跌">↓</span>`; }
+function arrowQ(cls)    { return `<span class="arrow-${cls} pending" title="待結算">⏳</span>`; }
+
+function arrowHTML(dir, cls) {
+  if (dir === 'UP')   return arrowUp(cls);
+  if (dir === 'DOWN') return arrowDown(cls);
+  return arrowQ(cls);
+}
+
+function strategyLabel(s) {
+  if (s === 'v2_contract_aligned') return 'v2';
+  if (s === 'v1')                  return 'v1';
+  if (s === 'calibration_v0')      return 'calibration';
+  return s || '—';
+}
+
+function statusBadge(r) {
+  if (r.strategy === 'calibration_v0')      return '<span class="status-badge sb-calib">calibration</span>';
+  if (r.status === 'void')                  return '<span class="status-badge sb-void">void</span>';
+  if (r.status === 'pending')               return '<span class="status-badge sb-pending">pending</span>';
+  if (r.status === 'settled' && r.hit)      return '<span class="status-badge sb-hit">HIT ✓</span>';
+  if (r.status === 'settled' && r.hit===false) return '<span class="status-badge sb-miss">MISS ✗</span>';
+  return '';
+}
+
+function tooltipHTML(r) {
+  if (!r || r.status === 'empty') return '';
+  const d = pctDelta(r);
+  const dStr = d != null ? `${d > 0 ? '+' : ''}${d}%` : '—';
+  const settleStr = r.settlement != null ? r.settlement.toLocaleString('en-US', {maximumFractionDigits:2}) : '—';
+  const baseStr   = r.baseline   != null ? r.baseline.toLocaleString('en-US',   {maximumFractionDigits:2}) : '—';
+  return `
+    <div class="tooltip">
+      <div><span class="t-label">日期：</span><strong>${r.date}</strong></div>
+      <div><span class="t-label">策略：</span>${strategyLabel(r.strategy)}</div>
+      <div><span class="t-label">基準價：</span>${baseStr}</div>
+      <div><span class="t-label">結算價：</span>${settleStr}</div>
+      <div><span class="t-label">漲跌：</span>${dStr}</div>
+      <div><span class="t-label">預測：</span>${r.pick || '—'} → 實際：${r.actual || '待結算'}</div>
+      ${r.eligible ? '<div style="color:#3fb950;font-size:0.68rem;margin-top:4px">✓ 納入正式命中率（v2）</div>' : '<div style="color:#8b949e;font-size:0.68rem;margin-top:4px">✗ 不計入正式命中率</div>'}
+    </div>`;
+}
+
+function buildCell(r) {
+  if (!r) return `<div class="day-cell empty"></div>`;
+  const cls   = cellClass(r);
+  const date  = r.date.split('-')[2];
+  const d     = pctDelta(r);
+  const dStr  = d != null ? `${Number(d) > 0 ? '+' : ''}${d}%` : '';
+  const dCls  = d == null ? 'neutral' : Number(d) > 0 ? 'pos' : Number(d) < 0 ? 'neg' : 'neutral';
+
+  const pickHTML   = arrowHTML(r.pick, 'pick');
+  const actualHTML = arrowHTML(r.actual, 'actual');
+  const sepHTML    = `<span class="sep">→</span>`;
+
+  return `
+  <div class="day-cell tooltip-wrap ${cls}">
+    <span class="day-num">${date}</span>
+    <div class="pred-row">
+      ${pickHTML}
+      ${sepHTML}
+      ${actualHTML}
+      ${dStr ? `<span class="delta ${dCls}">${dStr}</span>` : ''}
+    </div>
+    ${statusBadge(r)}
+    ${tooltipHTML(r)}
+  </div>`;
+}
+
+// ─── Calendar builder ─────────────────────────────────────────────────────
+function buildCalendarSection(asset) {
+  const rows = byAsset(asset);
+  const byDate = Object.fromEntries(rows.map(r => [r.date, r]));
+  const hr = hitRate(rows);
+  const hrStr = hr !== null ? (hr * 100).toFixed(1) + '%' : '—';
+  const hrClass = hr === null ? '' : hr >= 0.6 ? 'good' : 'bad';
+  const imgSrc = asset === 'BTC'
+    ? 'https://s2.coinmarketcap.com/static/img/coins/64x64/1.png'
+    : 'https://s2.coinmarketcap.com/static/img/coins/64x64/1027.png';
+
+  const months = [
+    { year: 2026, month: 8 },   // August (JS month 7)
+    { year: 2026, month: 9 },   // September (JS month 8)
+  ];
+
+  const monthNames = ['一月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','十二月'];
+  const weekdays   = ['一','二','三','四','五','六','日'];
+
+  let calHTML = '';
+  for (const {year, month} of months) {
+    const monthIdx = month - 1;  // JS 0-based
+    const firstDay = new Date(year, monthIdx, 1).getDay(); // 0=Sun
+    const startOffset = (firstDay + 6) % 7;               // Mon=0
+    const daysInMonth = new Date(year, month, 0).getDate();
+
+    let cells = [];
+    // leading empty
+    for (let i = 0; i < startOffset; i++) cells.push(`<div class="day-cell empty"></div>`);
+    // days
+    for (let d = 1; d <= daysInMonth; d++) {
+      const key = `${year}-${String(month).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      cells.push(buildCell(byDate[key] || null));
+    }
+    // trailing empty to complete grid
+    while (cells.length % 7 !== 0) cells.push(`<div class="day-cell empty"></div>`);
+
+    calHTML += `
+    <div class="month-block">
+      <div class="month-label">${year} 年 ${monthNames[monthIdx]}</div>
+      <div class="weekday-row">
+        ${weekdays.map(w => `<span>${w}</span>`).join('')}
+      </div>
+      <div class="calendar-grid">
+        ${cells.join('\n')}
+      </div>
+    </div>`;
+  }
+
+  return `
+  <section class="asset-section">
+    <div class="asset-header">
+      <img src="${imgSrc}" alt="${asset} icon" onerror="this.style.display='none'">
+      <h2>${asset} 每日預測命中率</h2>
+      <div class="hit-rate">v2 命中率 <strong class="${hrClass}">${hrStr}</strong></div>
+    </div>
+    ${calHTML}
+  </section>`;
+}
+
+// ─── Global stats ────────────────────────────────────────────────────────
+function buildStats() {
+  const all     = DATA.filter(r => r.eligible);
+  const settled = all.filter(r => r.status === 'settled');
+  const hits    = settled.filter(r => r.hit === true);
+  const misses  = settled.filter(r => r.hit === false);
+  const pending = all.filter(r => r.status === 'pending');
+  const total   = settled.length;
+  const rate    = total ? (hits.length / total * 100).toFixed(1) : '—';
+  const rateClass = parseFloat(rate) >= 60 ? 'green' : 'red';
+
+  const btcHr = hitRate(byAsset('BTC').filter(r=>r.eligible));
+  const ethHr = hitRate(byAsset('ETH').filter(r=>r.eligible));
+
+  return `
+  <div class="stats-bar">
+    <div class="stat-card ${rateClass}">
+      <div class="label">整體命中率</div>
+      <div class="value">${rate}%</div>
+    </div>
+    <div class="stat-card green">
+      <div class="label">命中 (v2)</div>
+      <div class="value">${hits.length}</div>
+    </div>
+    <div class="stat-card red">
+      <div class="label">未中 (v2)</div>
+      <div class="value">${misses.length}</div>
+    </div>
+    <div class="stat-card amber">
+      <div class="label">待結算</div>
+      <div class="value">${pending.length}</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">BTC 命中率</div>
+      <div class="value" style="color:${btcHr>=0.5?'#3fb950':'#f85149'}">${btcHr!==null?(btcHr*100).toFixed(1)+'%':'—'}</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">ETH 命中率</div>
+      <div class="value" style="color:${ethHr>=0.5?'#3fb950':'#f85149'}">${ethHr!==null?(ethHr*100).toFixed(1)+'%':'—'}</div>
+    </div>
+  </div>`;
+}
+
+// ─── Legend ───────────────────────────────────────────────────────────────
+function buildLegend() {
+  return `
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot ld-hit"></div> HIT – 預測正確（v2）</div>
+    <div class="legend-item"><div class="legend-dot ld-miss"></div> MISS – 預測未中（v2）</div>
+    <div class="legend-item"><div class="legend-dot ld-pending"></div> 待結算</div>
+    <div class="legend-item"><div class="legend-dot ld-void"></div> Void / 舊版（不計入）</div>
+    <div class="legend-item"><div class="legend-dot ld-calib"></div> Calibration 測試</div>
+    <div class="legend-item" style="margin-left:8px">↑ = 預測方向 → 實際方向</div>
+  </div>`;
+}
+
+// ─── Render ───────────────────────────────────────────────────────────────
+document.getElementById('app').innerHTML = `
+  <header class="page-header">
+    <div class="coin-icons">
+      <img src="https://s2.coinmarketcap.com/static/img/coins/64x64/1.png"    alt="BTC" onerror="this.style.display='none'">
+      <img src="https://s2.coinmarketcap.com/static/img/coins/64x64/1027.png" alt="ETH" onerror="this.style.display='none'">
+    </div>
+    <h1>BTC / ETH 每日預測命中率熱力圖</h1>
+    <p>Binance v2_contract_aligned · 預測方向 vs 實際結算 · 資料截至 2026-09-17</p>
+  </header>
+  ${buildStats()}
+  ${buildLegend()}
+  ${buildCalendarSection('BTC')}
+  ${buildCalendarSection('ETH')}
+  <footer style="text-align:center;color:var(--muted);font-size:0.75rem;margin-top:16px">
+    本頁資料來自 <code>reports/binance-daily-predictions/data/predictions.csv</code>，僅計入 <code>strategy_version=v2_contract_aligned</code>、<code>accuracy_eligible=true</code> 的正式列。Calibration 與 v1 列展示但不計入命中率。
+  </footer>
+`;
+</script>
+</body>
+</html>
