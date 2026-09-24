@@ -421,7 +421,6 @@ function legendHTML() {
   <div class="legend">
     <div class="leg"><div class="leg-sq" style="background:#1a7f37;border:1px solid #2ea04380"></div> 實際上漲（命中閃光）</div>
     <div class="leg"><div class="leg-sq" style="background:#7f1a20;border:1px solid #cf222e80"></div> 實際下跌（命中閃光）</div>
-    <div class="leg"><div class="leg-sq" style="background:#1c1f24;border:1px solid #21262d;opacity:.6"></div> Void / 舊版</div>
     <div class="leg"><div class="leg-sq" style="background:#0e1f38;border:1px solid #1f3d6b60;opacity:.7"></div> Calibration</div>
     <div class="leg"><div class="leg-sq" style="background:#2d1f0a;border:1px solid #6b430060"></div> 待結算</div>
     <div class="leg" style="font-size:.72rem">✗ = 未中 &nbsp;·&nbsp; ↑↓ = 預測方向</div>
@@ -442,9 +441,6 @@ document.getElementById('app').innerHTML = `
   ${legendHTML()}
   ${sectionHTML('BTC')}
   ${sectionHTML('ETH')}
-  <footer style="text-align:center;color:#6e7681;font-size:.72rem;margin-top:8px">
-    僅計入 v2_contract_aligned + accuracy_eligible=true · void / v1 / calibration 顯示但不計入命中率
-  </footer>
 `;
 </script>
 </body>
