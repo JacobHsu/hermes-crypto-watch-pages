@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BTC/ETH 預測命中熱力圖</title>
+<title>預測市場命中熱力圖</title>
+<link rel="icon" type="image/png" href="https://s2.coinmarketcap.com/static/img/coins/64x64/1.png">
 <style>
 /* ── Two-column layout ──────────────────────────── */
 .layout {
@@ -526,7 +527,8 @@ function calCellHTML(r) {
   </div>`;
 }
 
-function metalCalendarHTML(rows, emoji, title) {
+function metalCalendarHTML(rows, cmcId, alt, title) {
+  const logoHTML = `<img src="https://s2.coinmarketcap.com/static/img/coins/64x64/${cmcId}.png" alt="${alt}" style="width:26px;height:26px;vertical-align:middle" onerror="this.style.display='none'">`;
   const { hits, total, rate } = metalStats(rows);
   const rateStr = rate !== null ? (rate * 100).toFixed(0) + '%' : '—';
   const rateCls = rate === null ? '' : rate >= .5 ? 'g' : 'r';
@@ -535,7 +537,7 @@ function metalCalendarHTML(rows, emoji, title) {
     return `
     <section class="cal-section">
       <div class="section-head">
-        <span style="font-size:26px;line-height:1;margin-right:2px">${emoji}</span>
+        <span style="font-size:26px;line-height:1;margin-right:2px">${logoHTML}</span>
         <h2>${title}</h2>
       </div>
       <p style="text-align:center;color:#6e7681;font-size:.8rem;padding:24px 0">尚無已結算資料</p>
@@ -576,7 +578,7 @@ function metalCalendarHTML(rows, emoji, title) {
   return `
   <section class="cal-section">
     <div class="section-head">
-      <span style="font-size:26px;line-height:1;margin-right:2px">${emoji}</span>
+      <span style="font-size:26px;line-height:1;margin-right:2px">${logoHTML}</span>
       <h2>${title}</h2>
       <div class="rate">命中率 <strong class="${rateCls}">${rateStr}</strong>
         <span style="color:#6e7681;font-size:.72rem;margin-left:4px">(${hits}/${total})</span>
@@ -592,10 +594,10 @@ document.getElementById('app').innerHTML = `
     <div class="coin-row">
       <img src="https://s2.coinmarketcap.com/static/img/coins/64x64/1.png"    alt="BTC" onerror="this.style.display='none'">
       <img src="https://s2.coinmarketcap.com/static/img/coins/64x64/1027.png" alt="ETH" onerror="this.style.display='none'">
-      <span style="font-size:22px;line-height:1">🪙</span>
-      <span style="font-size:22px;line-height:1">🥈</span>
+      <img src="https://s2.coinmarketcap.com/static/img/coins/64x64/5176.png" alt="XAUUSD" onerror="this.style.display='none'">
+      <img src="https://s2.coinmarketcap.com/static/img/coins/64x64/24439.png" alt="XAGUSD" onerror="this.style.display='none'">
     </div>
-    <h1>BTC / ETH / 黃金 / 白銀 每日預測命中率</h1>
+    <h1>預測市場命中熱力圖</h1>
   </header>
   ${pillsHTML()}
   ${legendHTML()}
@@ -605,8 +607,8 @@ document.getElementById('app').innerHTML = `
       ${sectionHTML('ETH')}
     </div>
     <div class="col-right">
-      ${metalCalendarHTML(GOLD_ROWS, '🪙', '黃金（Polymarket XAUUSD）')}
-      ${metalCalendarHTML(SILVER_ROWS, '🥈', '白銀（Polymarket XAGUSD）')}
+      ${metalCalendarHTML(GOLD_ROWS, 5176, 'XAUUSD', '黃金（Polymarket XAUUSD）')}
+      ${metalCalendarHTML(SILVER_ROWS, 24439, 'XAGUSD', '白銀（Polymarket XAGUSD）')}
     </div>
   </div>
 `;
