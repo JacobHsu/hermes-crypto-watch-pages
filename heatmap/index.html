@@ -5,6 +5,54 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BTC/ETH 預測命中熱力圖</title>
 <style>
+/* ── Two-column layout ──────────────────────────── */
+.layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  max-width: 1160px;
+  margin: 0 auto;
+  align-items: start;
+}
+.col-left, .col-right { min-width: 0; }
+@media (max-width: 900px) {
+  .layout { grid-template-columns: 1fr; gap: 0; }
+}
+
+/* ── Gold calendar ──────────────────────────────── */
+.cal-section {
+  max-width: 480px;
+  margin: 0 auto 44px;
+}
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+.cal-dow {
+  text-align: center;
+  font-size: .66rem;
+  color: #6e7681;
+  padding-bottom: 4px;
+}
+.cal-cell {
+  aspect-ratio: 1;
+  border-radius: 8px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  min-height: 44px;
+}
+.cal-cell.empty { background: transparent; }
+.cal-cell.void    { background: #1c1f24 !important; border: 1px solid #21262d; opacity: .5; }
+.cal-cell.pending { background: #2d1f0a !important; border: 1px solid #6b430060; }
+.cal-cell .b-date { font-size: .56rem; }
+.cal-cell .b-pct  { font-size: .68rem; }
+.cal-cell .b-pick { font-size: .6rem; }
+
 /* ── Reset & base ─────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 body {
@@ -279,6 +327,12 @@ const ROWS = [
   {date:"2026-09-24",asset:"ETH",pick:"DOWN",actual:null,  pct:null, status:"pending",eligible:true},
 ];
 
+// GOLD calendar data
+const GOLD_ROWS = [
+  {date:"2026-09-23",pick:"UP",actual:"DOWN",pct:null,status:"settled",eligible:true, hit:false},
+  {date:"2026-09-24",pick:"DOWN",actual:null,  pct:null, status:"pending",eligible:true},
+];
+
 /* ── Color scale ──────────────────────────────────────────────────── */
 /* Maps actual % return → background colour.
    Intensity capped at ±5 % so normal ±2 % moves show clearly. */
@@ -427,21 +481,138 @@ function legendHTML() {
   </div>`;
 }
 
+/* ── GOLD calendar ────────────────────────────────────────────────── */
+function goldStats() {
+  const rows    = GOLD_ROWS.filter(r => r.eligible);
+  const settled = rows.filter(r => r.status === 'settled');
+  const hits    = settled.filter(r => r.hit);
+  const rate    = settled.length ? hits.length / settled.length : null;
+  return { hits: hits.length, total: settled.length, rate };
+}
+
+function calCellHTML(r) {
+  if (!r) return '<div class="cal-cell empty"></div>';
+  const day = r.date.slice(8);
+  const isPending = r.status === 'pending';
+  const isHit  = r.eligible && r.hit === true;
+  const isMiss = r.eligible && r.hit === false;
+
+  let cls = 'block cal-cell';
+  if (isPending) cls += ' pending';
+  else if (isHit) cls += ' hit';
+
+  const bg  = (!isPending && r.pct !== null) ? blockBg(r.pct) : '';
+  const brd = (!isPending && r.pct !== null) ? blockBorder(r.pct) : '';
+  const style = bg ? `style="background:${bg};border:1px solid ${brd};"` : '';
+
+  const pctStr = r.pct !== null ? `${r.pct > 0 ? '+' : ''}${r.pct.toFixed(2)}%` : (isPending ? '…' : '—');
+  const pickArrow = r.pick === 'UP' ? '↑' : r.pick === 'DOWN' ? '↓' : '—';
+  const missX = isMiss ? '<span class="b-miss-x">✗</span>' : '';
+  const eligStr = r.eligible ? '✓ 計入命中率' : '✗ 不計入命中率';
+  const actualStr = r.actual || (isPending ? '待結算' : '—');
+
+  const tip = `
+    <div class="tip">
+      <div><span class="tl">日期 </span><strong>${r.date}</strong></div>
+      <div><span class="tl">預測 </span>${r.pick || '—'} &nbsp;→&nbsp; 實際 ${actualStr}</div>
+      <div><span class="tl">漲跌 </span>${pctStr}</div>
+      <div style="margin-top:4px;font-size:.66rem;color:${r.eligible ? '#3fb950' : '#8b949e'}">${eligStr}</div>
+    </div>`;
+
+  return `
+  <div class="${cls}" ${style} title="">
+    <span class="b-date">${day}</span>
+    <span class="b-pct">${pctStr}</span>
+    <span class="b-pick">${pickArrow}</span>
+    ${missX}
+    ${tip}
+  </div>`;
+}
+
+function goldCalendarHTML() {
+  const { hits, total, rate } = goldStats();
+  const rateStr = rate !== null ? (rate * 100).toFixed(0) + '%' : '—';
+  const rateCls = rate === null ? '' : rate >= .5 ? 'g' : 'r';
+
+  if (GOLD_ROWS.length === 0) {
+    return `
+    <section class="cal-section">
+      <div class="section-head">
+        <span style="font-size:26px;line-height:1;margin-right:2px">🪙</span>
+        <h2>黃金（Polymarket XAUUSD）</h2>
+      </div>
+      <p style="text-align:center;color:#6e7681;font-size:.8rem;padding:24px 0">尚無已結算資料</p>
+    </section>`;
+  }
+
+  const byMonth = {};
+  for (const r of GOLD_ROWS) {
+    const month = r.date.slice(0, 7);
+    (byMonth[month] = byMonth[month] || []).push(r);
+  }
+
+  const dow = ['日','一','二','三','四','五','六'];
+  const months = Object.keys(byMonth).sort().map(month => {
+    const rows = byMonth[month];
+    const byDate = Object.fromEntries(rows.map(r => [r.date, r]));
+    const [y, m] = month.split('-').map(Number);
+    const firstDow = new Date(Date.UTC(y, m - 1, 1)).getUTCDay();
+    const daysInMonth = new Date(Date.UTC(y, m, 0)).getUTCDate();
+
+    const cells = [];
+    for (let i = 0; i < firstDow; i++) cells.push(calCellHTML(null));
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dateStr = `${month}-${String(d).padStart(2, '0')}`;
+      cells.push(calCellHTML(byDate[dateStr] || null));
+    }
+
+    return `
+    <div style="margin-bottom:20px">
+      <div style="font-size:.8rem;color:#8b949e;margin-bottom:8px;text-align:center">${month}</div>
+      <div class="cal-grid">
+        ${dow.map(d => `<div class="cal-dow">${d}</div>`).join('')}
+        ${cells.join('')}
+      </div>
+    </div>`;
+  }).join('');
+
+  return `
+  <section class="cal-section">
+    <div class="section-head">
+      <span style="font-size:26px;line-height:1;margin-right:2px">🪙</span>
+      <h2>黃金（Polymarket XAUUSD）</h2>
+      <div class="rate">命中率 <strong class="${rateCls}">${rateStr}</strong>
+        <span style="color:#6e7681;font-size:.72rem;margin-left:4px">(${hits}/${total})</span>
+      </div>
+    </div>
+    ${months}
+  </section>`;
+}
+
 /* ── Render ───────────────────────────────────────────────────────── */
 document.getElementById('app').innerHTML = `
   <header class="header">
     <div class="coin-row">
       <img src="https://s2.coinmarketcap.com/static/img/coins/64x64/1.png"    alt="BTC" onerror="this.style.display='none'">
       <img src="https://s2.coinmarketcap.com/static/img/coins/64x64/1027.png" alt="ETH" onerror="this.style.display='none'">
+      <span style="font-size:22px;line-height:1">🪙</span>
     </div>
-    <h1>BTC / ETH 每日預測命中率</h1>
+    <h1>BTC / ETH / 黃金 每日預測命中率</h1>
     <p>方塊顏色 = 實際漲跌幅・閃光 = 預測命中・資料截至 2026-09-24</p>
   </header>
   ${pillsHTML()}
   ${legendHTML()}
-  ${sectionHTML('BTC')}
-  ${sectionHTML('ETH')}
+  <div class="layout">
+    <div class="col-left">
+      ${sectionHTML('BTC')}
+      ${sectionHTML('ETH')}
+    </div>
+    <div class="col-right">
+      ${goldCalendarHTML()}
+    </div>
+  </div>
 `;
+
 </script>
 </body>
 </html>
