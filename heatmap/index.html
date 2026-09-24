@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>預測市場命中熱力圖</title>
-<link rel="icon" type="image/png" href="https://s2.coinmarketcap.com/static/img/coins/64x64/1.png">
+<link rel="icon" type="image/png" href="https://polymarket.com/icons/favicon-32x32.png">
 <style>
 /* ── Two-column layout ──────────────────────────── */
 .layout {
@@ -423,12 +423,19 @@ function stats(asset) {
   const settled = rows.filter(r => r.status === 'settled');
   const hits    = settled.filter(r => r.hit);
   const rate    = settled.length ? hits.length / settled.length : null;
-  return { hits: hits.length, total: settled.length, rate };
+
+  const allRows  = ROWS.filter(r => r.asset === asset && r.status === 'settled' && r.actual);
+  const curMonth = allRows.length ? allRows[allRows.length - 1].date.slice(0, 7) : null;
+  const monthRows = curMonth ? allRows.filter(r => r.date.slice(0, 7) === curMonth) : [];
+  const monthUp   = monthRows.filter(r => r.actual === 'UP').length;
+  const monthDown = monthRows.filter(r => r.actual === 'DOWN').length;
+
+  return { hits: hits.length, total: settled.length, rate, monthUp, monthDown };
 }
 
 /* ── Section HTML ──────────────────────────────────────────────────── */
 function sectionHTML(asset) {
-  const { hits, total, rate } = stats(asset);
+  const { hits, total, rate, monthUp, monthDown } = stats(asset);
   const rateStr   = rate !== null ? (rate * 100).toFixed(0) + '%' : '—';
   const rateCls   = rate === null ? '' : rate >= .5 ? 'g' : 'r';
   const img = asset === 'BTC'
@@ -443,7 +450,9 @@ function sectionHTML(asset) {
     <div class="section-head">
       <img src="${img}" alt="${asset}" onerror="this.style.display='none'">
       <h2>${asset}</h2>
-      <div class="rate">v2 命中率 <strong class="${rateCls}">${rateStr}</strong>
+      <div class="rate">
+        <span style="color:#6e7681;font-size:.72rem;margin-right:8px">本月 ↑${monthUp}／↓${monthDown}</span>
+        命中率 <strong class="${rateCls}">${rateStr}</strong>
         <span style="color:#6e7681;font-size:.72rem;margin-left:4px">(${hits}/${total})</span>
       </div>
     </div>
@@ -567,7 +576,7 @@ function metalCalendarHTML(rows, cmcId, alt, title) {
 
     return `
     <div style="margin-bottom:20px">
-      <div style="font-size:.8rem;color:#8b949e;margin-bottom:8px;text-align:center">${month}</div>
+      <div style="font-size:.8rem;color:#8b949e;margin-bottom:8px;text-align:center">${month} <span style="color:#6e7681">（↑${monthRows.filter(r=>r.actual==='UP').length}／↓${monthRows.filter(r=>r.actual==='DOWN').length}）</span></div>
       <div class="cal-grid">
         ${dow.map(d => `<div class="cal-dow">${d}</div>`).join('')}
         ${cells.join('')}
