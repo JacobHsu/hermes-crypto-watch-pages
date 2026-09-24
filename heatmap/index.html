@@ -332,6 +332,10 @@ const GOLD_ROWS = [
   {date:"2026-09-24",pick:"DOWN",actual:null,  pct:null, status:"pending",eligible:true},
 ];
 
+// SILVER calendar data
+const SILVER_ROWS = [
+];
+
 /* ── Color scale ──────────────────────────────────────────────────── */
 /* Maps actual % return → background colour.
    Intensity capped at ±5 % so normal ±2 % moves show clearly. */
@@ -475,12 +479,12 @@ function legendHTML() {
   </div>`;
 }
 
-/* ── GOLD calendar ────────────────────────────────────────────────── */
-function goldStats() {
-  const rows    = GOLD_ROWS.filter(r => r.eligible);
-  const settled = rows.filter(r => r.status === 'settled');
-  const hits    = settled.filter(r => r.hit);
-  const rate    = settled.length ? hits.length / settled.length : null;
+/* ── Precious-metal calendar (shared by GOLD and SILVER) ─────────────── */
+function metalStats(rows) {
+  const eligible = rows.filter(r => r.eligible);
+  const settled  = eligible.filter(r => r.status === 'settled');
+  const hits     = settled.filter(r => r.hit);
+  const rate     = settled.length ? hits.length / settled.length : null;
   return { hits: hits.length, total: settled.length, rate };
 }
 
@@ -521,32 +525,32 @@ function calCellHTML(r) {
   </div>`;
 }
 
-function goldCalendarHTML() {
-  const { hits, total, rate } = goldStats();
+function metalCalendarHTML(rows, emoji, title) {
+  const { hits, total, rate } = metalStats(rows);
   const rateStr = rate !== null ? (rate * 100).toFixed(0) + '%' : '—';
   const rateCls = rate === null ? '' : rate >= .5 ? 'g' : 'r';
 
-  if (GOLD_ROWS.length === 0) {
+  if (rows.length === 0) {
     return `
     <section class="cal-section">
       <div class="section-head">
-        <span style="font-size:26px;line-height:1;margin-right:2px">🪙</span>
-        <h2>黃金（Polymarket XAUUSD）</h2>
+        <span style="font-size:26px;line-height:1;margin-right:2px">${emoji}</span>
+        <h2>${title}</h2>
       </div>
       <p style="text-align:center;color:#6e7681;font-size:.8rem;padding:24px 0">尚無已結算資料</p>
     </section>`;
   }
 
   const byMonth = {};
-  for (const r of GOLD_ROWS) {
+  for (const r of rows) {
     const month = r.date.slice(0, 7);
     (byMonth[month] = byMonth[month] || []).push(r);
   }
 
   const dow = ['日','一','二','三','四','五','六'];
   const months = Object.keys(byMonth).sort().map(month => {
-    const rows = byMonth[month];
-    const byDate = Object.fromEntries(rows.map(r => [r.date, r]));
+    const monthRows = byMonth[month];
+    const byDate = Object.fromEntries(monthRows.map(r => [r.date, r]));
     const [y, m] = month.split('-').map(Number);
     const firstDow = new Date(Date.UTC(y, m - 1, 1)).getUTCDay();
     const daysInMonth = new Date(Date.UTC(y, m, 0)).getUTCDate();
@@ -571,8 +575,8 @@ function goldCalendarHTML() {
   return `
   <section class="cal-section">
     <div class="section-head">
-      <span style="font-size:26px;line-height:1;margin-right:2px">🪙</span>
-      <h2>黃金（Polymarket XAUUSD）</h2>
+      <span style="font-size:26px;line-height:1;margin-right:2px">${emoji}</span>
+      <h2>${title}</h2>
       <div class="rate">命中率 <strong class="${rateCls}">${rateStr}</strong>
         <span style="color:#6e7681;font-size:.72rem;margin-left:4px">(${hits}/${total})</span>
       </div>
@@ -588,8 +592,9 @@ document.getElementById('app').innerHTML = `
       <img src="https://s2.coinmarketcap.com/static/img/coins/64x64/1.png"    alt="BTC" onerror="this.style.display='none'">
       <img src="https://s2.coinmarketcap.com/static/img/coins/64x64/1027.png" alt="ETH" onerror="this.style.display='none'">
       <span style="font-size:22px;line-height:1">🪙</span>
+      <span style="font-size:22px;line-height:1">🥈</span>
     </div>
-    <h1>BTC / ETH / 黃金 每日預測命中率</h1>
+    <h1>BTC / ETH / 黃金 / 白銀 每日預測命中率</h1>
   </header>
   ${pillsHTML()}
   ${legendHTML()}
@@ -599,7 +604,8 @@ document.getElementById('app').innerHTML = `
       ${sectionHTML('ETH')}
     </div>
     <div class="col-right">
-      ${goldCalendarHTML()}
+      ${metalCalendarHTML(GOLD_ROWS, '🪙', '黃金（Polymarket XAUUSD）')}
+      ${metalCalendarHTML(SILVER_ROWS, '🥈', '白銀（Polymarket XAGUSD）')}
     </div>
   </div>
 `;
