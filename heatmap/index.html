@@ -36,22 +36,21 @@
   padding-bottom: 4px;
 }
 .cal-cell {
-  aspect-ratio: 1;
-  border-radius: 8px;
+  border-radius: 6px;
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  min-height: 44px;
+  min-height: 34px;
+  padding: 4px 0;
 }
 .cal-cell.empty { background: transparent; }
 .cal-cell.void    { background: #1c1f24 !important; border: 1px solid #21262d; opacity: .5; }
 .cal-cell.pending { background: #2d1f0a !important; border: 1px solid #6b430060; }
 .cal-cell .b-date { font-size: .56rem; }
 .cal-cell .b-pct  { font-size: .68rem; }
-.cal-cell .b-pick { font-size: .6rem; }
 
 /* ── Reset & base ─────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -385,9 +384,6 @@ function blockHTML(r) {
   // % text
   const pctStr = r.pct !== null ? `${r.pct > 0 ? '+' : ''}${r.pct.toFixed(2)}%` : (isPending ? '…' : '—');
 
-  // Pick arrow
-  const pickArrow = r.pick === 'UP' ? '↑' : r.pick === 'DOWN' ? '↓' : '—';
-
   // Miss marker
   const missX = isMiss ? '<span class="b-miss-x">✗</span>' : '';
 
@@ -410,7 +406,6 @@ function blockHTML(r) {
   <div class="${cls}" ${style} title="">
     <span class="b-date">${day}</span>
     <span class="b-pct">${pctStr}</span>
-    <span class="b-pick">${pickArrow}</span>
     ${missX}
     ${tip}
   </div>`;
@@ -477,7 +472,6 @@ function legendHTML() {
     <div class="leg"><div class="leg-sq" style="background:#7f1a20;border:1px solid #cf222e80"></div> 實際下跌（命中閃光）</div>
     <div class="leg"><div class="leg-sq" style="background:#0e1f38;border:1px solid #1f3d6b60;opacity:.7"></div> Calibration</div>
     <div class="leg"><div class="leg-sq" style="background:#2d1f0a;border:1px solid #6b430060"></div> 待結算</div>
-    <div class="leg" style="font-size:.72rem">✗ = 未中 &nbsp;·&nbsp; ↑↓ = 預測方向</div>
   </div>`;
 }
 
@@ -506,7 +500,6 @@ function calCellHTML(r) {
   const style = bg ? `style="background:${bg};border:1px solid ${brd};"` : '';
 
   const pctStr = r.pct !== null ? `${r.pct > 0 ? '+' : ''}${r.pct.toFixed(2)}%` : (isPending ? '…' : '—');
-  const pickArrow = r.pick === 'UP' ? '↑' : r.pick === 'DOWN' ? '↓' : '—';
   const missX = isMiss ? '<span class="b-miss-x">✗</span>' : '';
   const eligStr = r.eligible ? '✓ 計入命中率' : '✗ 不計入命中率';
   const actualStr = r.actual || (isPending ? '待結算' : '—');
@@ -523,7 +516,6 @@ function calCellHTML(r) {
   <div class="${cls}" ${style} title="">
     <span class="b-date">${day}</span>
     <span class="b-pct">${pctStr}</span>
-    <span class="b-pick">${pickArrow}</span>
     ${missX}
     ${tip}
   </div>`;
