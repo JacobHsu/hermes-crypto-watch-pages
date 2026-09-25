@@ -452,7 +452,7 @@ function sectionHTML(asset) {
       <img src="${img}" alt="${asset}" onerror="this.style.display='none'">
       <h2>${asset}</h2>
       <div class="rate">
-        <span style="color:#6e7681;font-size:.72rem;margin-right:8px">本月 <span style="color:#3fb950">↑${monthUp}</span>／<span style="color:#f85149">↓${monthDown}</span></span>
+        <span style="color:#6e7681;font-size:.72rem;margin-right:8px">本月 <span style="color:#3fb950">▲${monthUp}</span>／<span style="color:#f85149">▼${monthDown}</span></span>
         命中率 <strong class="${rateCls}">${rateStr}</strong>
         <span style="color:#6e7681;font-size:.72rem;margin-left:4px">(${hits}/${total})</span>
       </div>
@@ -577,7 +577,7 @@ function metalCalendarHTML(rows, cmcId, alt, title) {
 
     return `
     <div style="margin-bottom:20px">
-      <div style="font-size:.8rem;color:#8b949e;margin-bottom:8px;text-align:center">${month} <span style="color:#6e7681">（<span style="color:#3fb950">↑${monthRows.filter(r=>r.actual==='UP').length}</span>／<span style="color:#f85149">↓${monthRows.filter(r=>r.actual==='DOWN').length}</span>）</span></div>
+      <div style="font-size:.8rem;color:#8b949e;margin-bottom:8px;text-align:center">${month} <span style="color:#6e7681">（<span style="color:#3fb950">▲${monthRows.filter(r=>r.actual==='UP').length}</span>／<span style="color:#f85149">▼${monthRows.filter(r=>r.actual==='DOWN').length}</span>）</span></div>
       <div class="cal-grid">
         ${dow.map(d => `<div class="cal-dow">${d}</div>`).join('')}
         ${cells.join('')}
