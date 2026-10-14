@@ -169,7 +169,7 @@ body {
 /* ── Color scale ────────────────────────────────
    actual pct → background is set via inline style
    but we define base colour classes for void/pending/calib */
-.block.void    { background: #1c1f24 !important; border: 1px solid #21262d; opacity: .6; }
+.block.void    { background: #1c1f24; border: 1px solid #21262d; opacity: .6; }
 .block.pending { background: #2d1f0a !important; border: 1px solid #6b430060; }
 .block.calib   { background: #0e1f38 !important; border: 1px solid #1f3d6b60; opacity: .7; }
 
@@ -297,9 +297,6 @@ body {
 <script>
 /* ── Data ──────────────────────────────────────────────────────────── */
 const ROWS = [
-  // calibration (not eligible)
-  {date:"2026-08-31",asset:"BTC",pick:"DOWN",actual:"DOWN",pct:-.31,status:"settled",eligible:false,strategy:"calibration_v0"},
-  {date:"2026-08-31",asset:"ETH",pick:"DOWN",actual:"DOWN",pct:-.55,status:"settled",eligible:false,strategy:"calibration_v0"},
   // void legacy
   {date:"2026-09-01",asset:"BTC",pick:"UP",  actual:"DOWN",pct:-1.09,status:"void",eligible:false,strategy:"legacy"},
   {date:"2026-09-01",asset:"ETH",pick:"UP",  actual:"DOWN",pct:-.71, status:"void",eligible:false,strategy:"legacy"},
@@ -469,8 +466,8 @@ function blockHTML(r) {
   else if (isHit)     cls += ' hit';
 
   // Inline style
-  const bg  = (!isCalib && !isVoid && !isPending && r.pct !== null) ? blockBg(r.pct) : '';
-  const brd = (!isCalib && !isVoid && !isPending && r.pct !== null) ? blockBorder(r.pct) : '';
+  const bg  = (!isCalib && !isPending && r.pct !== null) ? blockBg(r.pct) : '';
+  const brd = (!isCalib && !isPending && r.pct !== null) ? blockBorder(r.pct) : '';
   const style = bg ? `style="background:${bg};border:1px solid ${brd};"` : '';
 
   // % text
