@@ -561,8 +561,16 @@ function calCellHTML(r) {
   if (isPending) cls += ' pending';
   else if (isHit) cls += ' hit';
 
-  const bg  = (!isPending && r.pct !== null) ? blockBg(r.pct) : '';
-  const brd = (!isPending && r.pct !== null) ? blockBorder(r.pct) : '';
+  const bg = isPending ? ''
+    : r.pct !== null ? blockBg(r.pct)
+    : r.actual === 'UP' ? 'rgb(13,51,32)'
+    : r.actual === 'DOWN' ? 'rgb(61,17,20)'
+    : '';
+  const brd = isPending ? ''
+    : r.pct !== null ? blockBorder(r.pct)
+    : r.actual === 'UP' ? '#2ea04380'
+    : r.actual === 'DOWN' ? '#cf222e80'
+    : '';
   const style = bg ? `style="background:${bg};border:1px solid ${brd};"` : '';
 
   const pctStr = r.pct !== null ? `${r.pct > 0 ? '+' : ''}${r.pct.toFixed(2)}%` : (isPending ? '…' : '—');
