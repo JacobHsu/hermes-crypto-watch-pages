@@ -48,6 +48,12 @@
   padding: 4px 0;
 }
 .cal-cell.empty { background: transparent; }
+.cal-cell.no-data {
+  height: 62px;
+  background: #161b22;
+  border: 1px solid #21262d;
+  opacity: .45;
+}
 .cal-cell.void    { background: #1c1f24 !important; border: 1px solid #21262d; opacity: .5; }
 .cal-cell.pending { background: #2d1f0a !important; border: 1px solid #6b430060; }
 .cal-cell .b-date { font-size: .56rem; }
@@ -125,6 +131,23 @@ body {
   flex-wrap: wrap;
   gap: 6px;
 }
+.asset-month { margin-bottom: 20px; }
+.asset-month:last-child { margin-bottom: 0; }
+.month-label {
+  font-size: .8rem;
+  color: #8b949e;
+  margin-bottom: 8px;
+  text-align: center;
+}
+.asset-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+  width: 100%;
+  max-width: 470px;
+  margin: 0 auto;
+}
+.asset-cal-grid .block, .cal-grid .block { width: 100%; }
 
 /* ── Block ─────────────────────────────────────── */
 .block {
@@ -258,10 +281,12 @@ body {
 /* ── Responsive ───────────────────────────────── */
 @media (max-width: 520px) {
   .block { width: 52px; height: 52px; border-radius: 8px; }
+  .cal-cell.no-data { height: 52px; }
   .b-pct { font-size: .72rem; }
 }
 @media (max-width: 380px) {
   .block { width: 44px; height: 44px; }
+  .cal-cell.no-data { height: 44px; }
   .b-date { font-size: .52rem; }
   .b-pct  { font-size: .65rem; }
 }
@@ -370,7 +395,17 @@ const ROWS = [
 // GOLD calendar data
 const GOLD_ROWS = [
   {date:"2026-09-23",pick:"UP",actual:"DOWN",pct:null,status:"settled",eligible:true, hit:false},
-  {date:"2026-09-24",pick:"DOWN",actual:null,  pct:null, status:"pending",eligible:true},
+  {date:"2026-09-24",pick:"DOWN",actual:"DOWN",pct:null,status:"settled",eligible:true, hit:true},
+  {date:"2026-09-25",pick:"DOWN",actual:"UP",pct:null,status:"settled",eligible:true, hit:false},
+  {date:"2026-09-30",pick:"UP",actual:"DOWN",pct:null,status:"settled",eligible:true, hit:false},
+  {date:"2026-10-05",pick:"DOWN",actual:"DOWN",pct:null,status:"settled",eligible:true, hit:true},
+  {date:"2026-10-06",pick:"DOWN",actual:"UP",pct:null,status:"settled",eligible:true, hit:false},
+  {date:"2026-10-07",pick:"UP",actual:"DOWN",pct:null,status:"settled",eligible:true, hit:false},
+  {date:"2026-10-08",pick:"DOWN",actual:"UP",pct:null,status:"settled",eligible:true, hit:false},
+  {date:"2026-10-09",pick:"UP",actual:"UP",pct:null,status:"settled",eligible:true, hit:true},
+  {date:"2026-10-12",pick:"DOWN",actual:"DOWN",pct:null,status:"settled",eligible:true, hit:true},
+  {date:"2026-10-13",pick:"DOWN",actual:null,  pct:null, status:"pending",eligible:true},
+  {date:"2026-10-14",pick:"UP",actual:null,  pct:null, status:"pending",eligible:true},
 ];
 
 // SILVER calendar data
@@ -485,6 +520,45 @@ function stats(asset) {
 }
 
 /* ── Section HTML ──────────────────────────────────────────────────── */
+function noDataCellHTML(dateStr) {
+  return `<div class="cal-cell no-data" data-date="${dateStr}"><span class="b-date">${dateStr.slice(8)}</span></div>`;
+}
+
+function assetMonthsHTML(rows) {
+  const byMonth = {};
+  for (const r of rows) {
+    const month = r.date.slice(0, 7);
+    (byMonth[month] = byMonth[month] || []).push(r);
+  }
+
+  const dow = ['日','一','二','三','四','五','六'];
+  return Object.keys(byMonth).sort().map(month => {
+    const monthRows = byMonth[month];
+    const byDate = Object.fromEntries(monthRows.map(r => [r.date, r]));
+    const [y, m] = month.split('-').map(Number);
+    const firstDow = new Date(Date.UTC(y, m - 1, 1)).getUTCDay();
+    const daysInMonth = new Date(Date.UTC(y, m, 0)).getUTCDate();
+    const monthUp = monthRows.filter(r => r.actual === 'UP').length;
+    const monthDown = monthRows.filter(r => r.actual === 'DOWN').length;
+
+    const cells = [];
+    for (let i = 0; i < firstDow; i++) cells.push('<div class="cal-cell empty"></div>');
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dateStr = `${month}-${String(d).padStart(2, '0')}`;
+      cells.push(byDate[dateStr] ? blockHTML(byDate[dateStr]) : noDataCellHTML(dateStr));
+    }
+
+    return `
+    <div class="asset-month" data-month="${month}">
+      <div class="month-label">${month} <span style="color:#6e7681">（<span style="color:#3fb950">▲${monthUp}</span>／<span style="color:#f85149">▼${monthDown}</span>）</span></div>
+      <div class="asset-cal-grid">
+        ${dow.map(d => `<div class="cal-dow">${d}</div>`).join('')}
+        ${cells.join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
 function sectionHTML(asset) {
   const { hits, total, rate, monthUp, monthDown } = stats(asset);
   const rateStr   = rate !== null ? (rate * 100).toFixed(0) + '%' : '—';
@@ -494,7 +568,7 @@ function sectionHTML(asset) {
     : 'https://s2.coinmarketcap.com/static/img/coins/64x64/1027.png';
 
   const rows = ROWS.filter(r => r.asset === asset);
-  const blocks = rows.map(blockHTML).join('');
+  const months = assetMonthsHTML(rows);
 
   return `
   <section class="section">
@@ -507,7 +581,7 @@ function sectionHTML(asset) {
         <span style="color:#6e7681;font-size:.72rem;margin-left:4px">(${hits}/${total})</span>
       </div>
     </div>
-    <div class="heatmap">${blocks}</div>
+    ${months}
   </section>`;
 }
 
@@ -630,7 +704,7 @@ function metalCalendarHTML(rows, cmcId, alt, title) {
     for (let i = 0; i < firstDow; i++) cells.push(calCellHTML(null));
     for (let d = 1; d <= daysInMonth; d++) {
       const dateStr = `${month}-${String(d).padStart(2, '0')}`;
-      cells.push(calCellHTML(byDate[dateStr] || null));
+      cells.push(byDate[dateStr] ? calCellHTML(byDate[dateStr]) : noDataCellHTML(dateStr));
     }
 
     return `
