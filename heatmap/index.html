@@ -523,19 +523,25 @@ function blockHTML(r) {
 }
 
 /* ── Stats ────────────────────────────────────────────────────────── */
-function stats(asset) {
-  const rows    = ROWS.filter(r => r.asset === asset && r.eligible);
+const ACTIVE_PRODUCTION_STRATEGY = 'hermes_v4_1_fibonacci_multi_asset_prod_v1';
+
+function statsForRows(sourceRows, asset) {
+  const rows    = sourceRows.filter(r => r.asset === asset && r.eligible && r.strategy === ACTIVE_PRODUCTION_STRATEGY);
   const settled = rows.filter(r => r.status === 'settled');
   const hits    = settled.filter(r => r.hit);
   const rate    = settled.length ? hits.length / settled.length : null;
 
-  const allRows  = ROWS.filter(r => r.asset === asset && r.status === 'settled' && r.actual);
+  const allRows  = sourceRows.filter(r => r.asset === asset && r.status === 'settled' && r.actual);
   const curMonth = allRows.length ? allRows[allRows.length - 1].date.slice(0, 7) : null;
   const monthRows = curMonth ? allRows.filter(r => r.date.slice(0, 7) === curMonth) : [];
   const monthUp   = monthRows.filter(r => r.actual === 'UP').length;
   const monthDown = monthRows.filter(r => r.actual === 'DOWN').length;
 
   return { hits: hits.length, total: settled.length, rate, monthUp, monthDown };
+}
+
+function stats(asset) {
+  return statsForRows(ROWS, asset);
 }
 
 /* ── Section HTML ──────────────────────────────────────────────────── */
@@ -605,21 +611,31 @@ function sectionHTML(asset) {
 }
 
 /* ── Global stats pills ───────────────────────────────────────────── */
-function pillsHTML() {
-  const all     = ROWS.filter(r => r.eligible);
+function pillsStats(sourceRows) {
+  const all     = sourceRows.filter(r => r.eligible && r.strategy === ACTIVE_PRODUCTION_STRATEGY);
   const settled = all.filter(r => r.status === 'settled');
   const hits    = settled.filter(r => r.hit);
   const misses  = settled.filter(r => !r.hit);
   const pending = all.filter(r => r.status === 'pending');
-  const rate    = settled.length ? (hits.length / settled.length * 100).toFixed(1) : '—';
+  return {
+    hits: hits.length,
+    misses: misses.length,
+    pending: pending.length,
+    rate: settled.length ? hits.length / settled.length : null,
+  };
+}
+
+function pillsHTML() {
+  const summary = pillsStats(ROWS);
+  const rate    = summary.rate === null ? '—' : (summary.rate * 100).toFixed(1);
   const rc      = parseFloat(rate) >= 50 ? 'g' : 'r';
 
   return `
   <div class="pills">
     <div class="pill ${rc}">整體命中率 <span class="v">${rate}%</span></div>
-    <div class="pill g">命中 <span class="v">${hits.length}</span></div>
-    <div class="pill r">未中 <span class="v">${misses.length}</span></div>
-    <div class="pill y">待結算 <span class="v">${pending.length}</span></div>
+    <div class="pill g">命中 <span class="v">${summary.hits}</span></div>
+    <div class="pill r">未中 <span class="v">${summary.misses}</span></div>
+    <div class="pill y">待結算 <span class="v">${summary.pending}</span></div>
   </div>`;
 }
 
