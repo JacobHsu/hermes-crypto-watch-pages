@@ -297,40 +297,14 @@ body {
 <script>
 /* ── Data ──────────────────────────────────────────────────────────── */
 const ROWS = [
-  {date:"2026-11-01",asset:"BTC",pick:"UP",actual:"UP",pct:0.19,status:"settled",strategy:"hermes_v4_1_fibonacci_multi_asset_prod_v1",eligible:true, hit:true},
-  {date:"2026-11-01",asset:"ETH",pick:"UP",actual:"UP",pct:1.35,status:"settled",strategy:"hermes_v4_1_fibonacci_multi_asset_prod_v1",eligible:true, hit:true},
-  {date:"2026-11-03",asset:"BTC",pick:"UP",actual:"DOWN",pct:-0.75,status:"settled",strategy:"hermes_v4_1_fibonacci_multi_asset_prod_v1",eligible:true, hit:false},
-  {date:"2026-11-03",asset:"ETH",pick:"UP",actual:"UP",pct:0.09,status:"settled",strategy:"hermes_v4_1_fibonacci_multi_asset_prod_v1",eligible:true, hit:true},
-  {date:"2026-11-06",asset:"BTC",pick:"UP",actual:"DOWN",pct:-5.24,status:"settled",strategy:"hermes_v4_1_fibonacci_multi_asset_prod_v1",eligible:true, hit:false},
-  {date:"2026-11-06",asset:"ETH",pick:"DOWN",actual:"DOWN",pct:-6.96,status:"settled",strategy:"hermes_v4_1_fibonacci_multi_asset_prod_v1",eligible:true, hit:true},
-  {date:"2026-11-07",asset:"BTC",pick:"DOWN",actual:"DOWN",pct:-0.44,status:"settled",strategy:"hermes_v4_1_fibonacci_multi_asset_prod_v1",eligible:true, hit:true},
-  {date:"2026-11-07",asset:"ETH",pick:"DOWN",actual:"DOWN",pct:-1.32,status:"settled",strategy:"hermes_v4_1_fibonacci_multi_asset_prod_v1",eligible:true, hit:true},
-  {date:"2026-11-08",asset:"BTC",pick:"UP",actual:"DOWN",pct:-0.26,status:"settled",strategy:"hermes_v4_1_fibonacci_multi_asset_prod_v1",eligible:true, hit:false},
-  {date:"2026-11-08",asset:"ETH",pick:"DOWN",actual:"UP",pct:0.05,status:"settled",strategy:"hermes_v4_1_fibonacci_multi_asset_prod_v1",eligible:true, hit:false},
-  {date:"2026-11-09",asset:"BTC",pick:"UP",actual:"DOWN",pct:-0.01,status:"settled",strategy:"hermes_v4_1_fibonacci_multi_asset_prod_v1",eligible:true, hit:false},
-  {date:"2026-11-09",asset:"ETH",pick:"UP",actual:"DOWN",pct:-0.23,status:"settled",strategy:"hermes_v4_1_fibonacci_multi_asset_prod_v1",eligible:true, hit:false},
-  {date:"2026-11-10",asset:"BTC",pick:"UP",actual:"DOWN",pct:-0.99,status:"settled",strategy:"hermes_v4_1_fibonacci_multi_asset_prod_v1",eligible:true, hit:false},
-  {date:"2026-11-10",asset:"ETH",pick:"UP",actual:"DOWN",pct:-4.41,status:"settled",strategy:"hermes_v4_1_fibonacci_multi_asset_prod_v1",eligible:true, hit:false},
-  {date:"2026-11-11",asset:"BTC",pick:"UP",actual:"DOWN",pct:-2.75,status:"settled",strategy:"hermes_v4_1_fibonacci_multi_asset_prod_v1",eligible:true, hit:false},
-  {date:"2026-11-11",asset:"ETH",pick:"UP",actual:"DOWN",pct:-5.19,status:"settled",strategy:"hermes_v4_1_fibonacci_multi_asset_prod_v1",eligible:true, hit:false},
-  {date:"2026-11-12",asset:"BTC",pick:"UP",actual:"UP",pct:1.79,status:"settled",strategy:"hermes_v4_1_fibonacci_multi_asset_prod_v1",eligible:true, hit:true},
-  {date:"2026-11-12",asset:"ETH",pick:"UP",actual:"UP",pct:2.79,status:"settled",strategy:"hermes_v4_1_fibonacci_multi_asset_prod_v1",eligible:true, hit:true},
-  {date:"2026-11-13",asset:"BTC",pick:"DOWN",actual:null,  pct:null, status:"pending",strategy:"hermes_v4_1_fibonacci_multi_asset_prod_v1",eligible:true},
-  {date:"2026-11-13",asset:"ETH",pick:"UP",actual:null,  pct:null, status:"pending",strategy:"hermes_v4_1_fibonacci_multi_asset_prod_v1",eligible:true},
 ];
 
 // GOLD calendar data
 const GOLD_ROWS = [
-  {date:"2026-11-07",asset:"GOLD",pick:"UP",actual:"DOWN",pct:null,status:"settled",strategy:"hermes_v4_1_fibonacci_gold_prod_v2",eligible:true, hit:false},
-  {date:"2026-11-11",asset:"GOLD",pick:"DOWN",actual:"DOWN",pct:null,status:"settled",strategy:"hermes_v4_1_fibonacci_gold_prod_v2",eligible:true, hit:true},
 ];
 
 // SILVER calendar data
 const SILVER_ROWS = [
-  {date:"2026-11-07",asset:"SILVER",pick:"UP",actual:"UP",pct:null,status:"settled",strategy:"hermes_v4_1_fibonacci_silver_prod_v2",eligible:true, hit:true},
-  {date:"2026-11-11",asset:"SILVER",pick:"DOWN",actual:"DOWN",pct:null,status:"settled",strategy:"hermes_v4_1_fibonacci_silver_prod_v2",eligible:true, hit:true},
-  {date:"2026-11-12",asset:"SILVER",pick:"UP",actual:"UP",pct:null,status:"settled",strategy:"hermes_v4_1_fibonacci_silver_prod_v2",eligible:true, hit:true},
-  {date:"2026-11-13",asset:"SILVER",pick:"UP",actual:null,  pct:null, status:"pending",strategy:"hermes_v4_1_fibonacci_silver_prod_v2",eligible:true},
 ];
 
 /* ── Color scale ──────────────────────────────────────────────────── */
@@ -413,7 +387,7 @@ function blockHTML(r) {
 }
 
 /* ── Stats ────────────────────────────────────────────────────────── */
-const ACTIVE_PRODUCTION_STRATEGY = 'hermes_v4_1_fibonacci_multi_asset_prod_v1';
+const ACTIVE_PRODUCTION_STRATEGY = 'hermes_v4_1_fibonacci_multi_asset_prod_v2';
 
 function statsForRows(sourceRows, asset) {
   const rows    = sourceRows.filter(r => r.asset === asset && r.eligible && r.strategy === ACTIVE_PRODUCTION_STRATEGY);
